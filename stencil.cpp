@@ -116,7 +116,7 @@ int main(){
     //for (int i = 0; i < np*nx; ++i) {
     //    std::cout << U[nt % 2][i] << " ";
     //}
-    std::cout << "Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
+    std::cout << "Time = " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() << std::endl;
 
     auto task_finish = *std::max_element(task_end.begin(), task_end.end());
     std::cout << "Task exec time: " << std::setprecision (15) <<  *std::max_element(task_duration.begin(), task_duration.end()) << std::endl;
