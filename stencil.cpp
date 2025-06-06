@@ -61,10 +61,11 @@ int idx(int i, int size)
 
 void stencil(int nt, int np, int nx, double *current, double *next, double **U,
              std::chrono::steady_clock::time_point *task_end, std::chrono::steady_clock::time_point *taskwait,
-             long *task_duration){
+             long *taskcreate, long *task_duration){
     for (int t = 0; t < nt; t++) {
         for (int i = 0; i < np; ++i) {
-#pragma omp task untied depend(out: next[i*nx]) \
+            auto start = std::chrono::steady_clock::now();
+#pragma omp task depend(out: next[i*nx]) \
 depend(in: current[idx(i-1, np)*nx], \
 current[i*nx], current[idx(i+1, np)*nx])
             heat_part(nx, &next[i * nx],
@@ -72,6 +73,8 @@ current[i*nx], current[idx(i+1, np)*nx])
                       &current[i * nx],
                       &current[idx(i + 1, np) * nx],
                       task_end, task_duration);
+            auto end = std::chrono::steady_clock::now();
+            *taskcreate += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
         }
         current = U[(t + 1) % 2];
         next = U[t % 2];
@@ -99,7 +102,9 @@ int main(){
     unsigned int n_threads = std::max(atoi(std::getenv("OMP_NUM_THREADS")), 1);
     std::vector<std::chrono::steady_clock::time_point> task_end(n_threads);
     std::vector<long> task_duration(n_threads, 0.0);
+    std::vector<long> barrier(n_threads, 0.0);
     std::chrono::steady_clock::time_point taskwait;
+    long taskcreate = 0;
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
@@ -107,8 +112,13 @@ int main(){
     {
 #pragma omp single
         {
-            stencil(nt, np, nx, current, next, U, task_end.data(), &taskwait, task_duration.data());
+            stencil(nt, np, nx, current, next, U, task_end.data(), &taskwait, &taskcreate, task_duration.data());
         }
+        int tid = omp_get_thread_num();
+        std::chrono::steady_clock::time_point barrier_begin = std::chrono::steady_clock::now();
+#pragma omp barrier
+        std::chrono::steady_clock::time_point barrier_end = std::chrono::steady_clock::now();
+        barrier[tid] = std::chrono::duration_cast<std::chrono::nanoseconds>(barrier_end - barrier_begin).count();
     }
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -122,4 +132,8 @@ int main(){
     std::cout << "Task exec time: " << std::setprecision (15) <<  *std::max_element(task_duration.begin(), task_duration.end()) << std::endl;
 
     std::cout << "Task wait time: " << std::setprecision (15) << std::chrono::duration_cast<std::chrono::nanoseconds>(taskwait-task_finish).count() << std::endl;
+
+    std::cout << "Task create time: " << std::setprecision (15) << taskcreate << std::endl;
+
+    std::cout << "Barrier waiting time: " << std::setprecision (15) << *std::max_element(barrier.begin(), barrier.end()) << std::endl;
 }
