@@ -71,30 +71,30 @@ void print_matrix(int size, double *m){
     std::cout << std::endl;
 }
 
-void init(int size, double *A, double *B)
+void init(int N, double *A, double *B)
 {
-    auto L = (double *) malloc(size * size * sizeof(double));
-    auto U = (double *) malloc(size * size * sizeof(double));
-    for(int i = 0; i < size; i++)
-        for(int j = 0; j < size; j++){
+    auto L = (double *) malloc(N * N * sizeof(double));
+    auto U = (double *) malloc(N * N * sizeof(double));
+    for(int i = 0; i < N; i++)
+        for(int j = 0; j < N; j++){
             if(i >= j)
-                L[i*size + j] = i-j+1;
+                L[i * N + j] = i - j + 1;
             else
-                L[i*size + j] = 0;
+                L[i * N + j] = 0;
             if(i <= j)
-                U[i*size + j] = j-i+1;
+                U[i * N + j] = j - i + 1;
             else
-                U[i*size + j] = 0;
+                U[i * N + j] = 0;
         }
-    for(int i = 0; i < size; i++) {
-        for(int j = 0; j < size; j++){
-            for(int k = 0; k < size; k++) {
-                A[i*size + j] += L[i*size + k] * U[k*size + j];
+    for(int i = 0; i < N; i++) {
+        for(int j = 0; j < N; j++){
+            for(int k = 0; k < N; k++) {
+                A[i * N + j] += L[i * N + k] * U[k * N + j];
             }
         }
     }
     /// copy A to B for validation
-    for (int i = 0; i < size * size; i++) {
+    for (int i = 0; i < N * N; i++) {
         B[i] = A[i];
     }
     free(L);
@@ -102,14 +102,14 @@ void init(int size, double *A, double *B)
 }
 
 
-void simple_lu(int n, int ldA, double *A)
+void simple_lu(int n, int N, double *A)
 {
     for (int i = 0; i < n; i++) {
         for (int j = i+1; j < n; j++) {
-            A[i*ldA+j] /= A[i*ldA+i];
+            A[i * N + j] /= A[i * N + i];
 
             for (int k = i+1; k < n; k++)
-                A[k*ldA+j] -= A[i*ldA+j] * A[k*ldA+i];
+                A[k * N + j] -= A[i * N + j] * A[k * N + i];
         }
     }
 }
@@ -196,8 +196,8 @@ void blocked_lu(int block_size, int N, double *A)
         // process the trailing matrix
         for (int ii = i+1; ii < block_count; ii++) {
             for (int jj = i+1; jj < block_count; jj++) {
-                int height = MIN(block_size, N - jj * block_size);
-                int width = MIN(block_size, N - ii * block_size);
+                int height = MIN(block_size, N - ii * block_size);
+                int width = MIN(block_size, N - jj * block_size);
 
                 // blocks[ii][jj] <-
                 //               blocks[ii][jj] -  blocks[ii][i] * blocks[i][jj]
