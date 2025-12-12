@@ -138,7 +138,7 @@ void forward_solve(const double *L, double *A, int dsize, int width, int N) {
     }
 }
 
-/// A: height * dsize, B: dsize * width, C: width * height, C -> AxB
+/// A: height * dsize, B: dsize * width, C: height * width, C -> AxB
 void matmul(const double *A, const double *B, double *C, int height, int dsize, int width, int N) {
     for (int i = 0; i < height; i++) {
         for (int k = 0; k < dsize; k++) {
@@ -200,7 +200,7 @@ void blocked_lu(int block_size, int N, double *A)
                 int width = MIN(block_size, N - ii * block_size);
 
                 // blocks[ii][jj] <-
-                //               blocks[ii][jj] -  blocks[i][jj] * blocks[ii][i]
+                //               blocks[ii][jj] -  blocks[ii][i] * blocks[i][jj]
 #pragma omp task depend(in:blocks[ii][i],blocks[i][jj]) depend(inout:blocks[ii][jj]) \
             priority(MAX(0, max_prio - (ii + jj)))
                 matmul(blocks[ii][i], blocks[i][jj], blocks[ii][jj], height, dsize, width, N);
